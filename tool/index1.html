@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Device Tester</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- LeafletJS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --bg-color: #111827;
+            --card-bg-color: #1F2937;
+            --text-color: #F3F4F6;
+            --text-muted-color: #9CA3AF;
+            --border-color: #374151;
+            --primary-color: #3B82F6;
+            --primary-hover-color: #2563EB;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Dark Theme (Default) */
+        body[data-theme="dark"] {
+            --bg-color: #111827;
+            --card-bg-color: #1F2937;
+            --text-color: #F3F4F6;
+            --text-muted-color: #9CA3AF;
+            --border-color: #374151;
+            --primary-color: #3B82F6;
+            --primary-hover-color: #2563EB;
+        }
+
+        /* Light Theme */
+        body[data-theme="light"] {
+            --bg-color: #F3F4F6;
+            --card-bg-color: #FFFFFF;
+            --text-color: #111827;
+            --text-muted-color: #4B5563;
+            --border-color: #E5E7EB;
+            --primary-color: #3B82F6;
+            --primary-hover-color: #2563EB;
+        }
+        
+        /* Blue Theme */
+        body[data-theme="blue"] {
+            --bg-color: #0d1b2a;
+            --card-bg-color: #1b263b;
+            --text-color: #e0e1dd;
+            --text-muted-color: #a9b4c2;
+            --border-color: #415a77;
+            --primary-color: #3a86ff;
+            --primary-hover-color: #0061e0;
+        }
+        
+        /* Pink Theme */
+        body[data-theme="pink"] {
+            --bg-color: #2a0c29;
+            --card-bg-color: #4a1942;
+            --text-color: #f7e4f3;
+            --text-muted-color: #d3a5ce;
+            --border-color: #893168;
+            --primary-color: #e56399;
+            --primary-hover-color: #de3c87;
+        }
+
+        .test-card {
+            background-color: var(--card-bg-color);
+            border-color: var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .test-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .text-muted {
+            color: var(--text-muted-color);
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            color: white;
+            transition: background-color 0.2s;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-hover-color);
+        }
+        .btn-secondary {
+            background-color: #4B5563;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #374151;
+        }
+        .btn-ai {
+            background: linear-gradient(90deg, #3B82F6, #9333EA);
+        }
+        .btn-ai:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+        .status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-success { background-color: #10B981; color: #fff; }
+        .status-fail { background-color: #EF4444; color: #fff; }
+        .status-testing { background-color: #F59E0B; color: #fff; }
+        .status-idle { background-color: #6B7280; color: #fff; }
+
+        video, canvas {
+            width: 100%;
+            border-radius: 0.5rem;
+            background-color: #000;
+            margin-top: 1rem;
+        }
+        #map {
+            height: 300px;
+            width: 100%;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            background-color: #374151;
+        }
+        .loader {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #fff;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.7);
+            display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0;
+            visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content { background-color: var(--card-bg-color); padding: 2rem; border-radius: 0.75rem; width: 90%; max-width: 500px; position: relative; }
+        .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted-color); font-size: 1.5rem; cursor: pointer; }
+        
+        .theme-btn, .lang-btn {
+            width: 100%;
+            background-color: #4B5563;
+        }
+        .theme-btn:hover, .lang-btn:hover {
+            background-color: #374151;
+        }
+        .theme-btn.active, .lang-btn.active {
+            background-color: var(--primary-color);
+        }
+        #ai-result {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Keyboard Tester Styles */
+        #keyboard-layout { display: flex; flex-direction: column; gap: 0.25rem; }
+        .keyboard-row { display: flex; justify-content: center; gap: 0.25rem; }
+        .key { padding: 0.5rem; width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center; border-radius: 0.25rem; background-color: #4B5563; transition: all 0.1s; }
+        .key.active { background-color: var(--primary-color); transform: scale(0.95); }
+        .key.w-auto { width: auto; padding: 0.5rem 0.75rem;}
+        
+        /* Mouse Tester Styles */
+        #mouse-test-area { height: 150px; border: 2px dashed var(--border-color); border-radius: 0.5rem; margin-top: 1rem; display: flex; align-items: center; justify-content: center; user-select: none; }
+        
+        /* Battery Styles */
+        #battery-icon { width: 60px; height: 28px; border: 2px solid var(--text-color); border-radius: 4px; position: relative; }
+        #battery-icon::after { content: ''; position: absolute; right: -7px; top: 50%; transform: translateY(-50%); width: 4px; height: 10px; background-color: var(--text-color); border-top-right-radius: 2px; border-bottom-right-radius: 2px;}
+        #battery-level { height: 100%; background-color: #10B981; border-radius: 2px; transition: width 0.5s; }
+        #battery-level.charging { background: linear-gradient(-45deg, #F59E0B, #10B981); background-size: 40px 40px; animation: charge 2s linear infinite; }
+        @keyframes charge { 0% { background-position: 0 0; } 100% { background-position: 40px 0; } }
+
+        /* Touch Test Styles */
+        #touch-test-area { height: 200px; border: 2px dashed var(--border-color); border-radius: 0.5rem; margin-top: 1rem; position: relative; overflow: hidden; }
+        .touch-dot { position: absolute; width: 40px; height: 40px; border-radius: 50%; background-color: var(--primary-color); opacity: 0.7; transform: translate(-50%, -50%); pointer-events: none;}
+        
+        /* Gyroscope Styles */
+        #gyro-cube-container { perspective: 400px; }
+        #gyro-cube { width: 100px; height: 100px; position: relative; transform-style: preserve-3d; margin: 2rem auto; transition: transform 0.1s linear;}
+        .cube-face { position: absolute; width: 100px; height: 100px; border: 2px solid var(--primary-color); background: rgba(59, 130, 246, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .front  { transform: translateZ(50px); }
+        .back   { transform: rotateY(180deg) translateZ(50px); }
+        .right  { transform: rotateY(90deg) translateZ(50px); }
+        .left   { transform: rotateY(-90deg) translateZ(50px); }
+        .top    { transform: rotateX(90deg) translateZ(50px); }
+        .bottom { transform: rotateX(-90deg) translateZ(50px); }
+        
+        /* Color Gamut Styles */
+        #color-gamut-bar { height: 50px; border-radius: 0.25rem; background: linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red); }
+        @supports (color: color(display-p3 1 1 1)) {
+            #color-gamut-bar { background: linear-gradient(to right, color(display-p3 1 0 0), color(display-p3 1 1 0), color(display-p3 0 1 0), color(display-p3 0 1 1), color(display-p3 0 0 1), color(display-p3 1 0 1), color(display-p3 1 0 0)); }
+        }
+
+    </style>
+</head>
+<body data-theme="dark">
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modal-close-btn" class="modal-close">&times;</button>
+            <h2 class="text-2xl font-semibold mb-6" data-key="settingsTitle"></h2>
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-medium mb-2" data-key="languageTitle"></h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="btn lang-btn active" data-lang="en">English</button>
+                        <button class="btn lang-btn" data-lang="id">Indonesia</button>
+                        <button class="btn lang-btn" data-lang="su">Sunda</button>
+                        <button class="btn lang-btn" data-lang="th">ไทย</button>
+                        <button class="btn lang-btn" data-lang="zh">中文</button>
+                    </div>
+                </div>
+                <div>
+                     <h3 class="text-lg font-medium mb-2" data-key="themeTitle"></h3>
+                     <div class="grid grid-cols-2 gap-2">
+                        <button class="btn theme-btn active" data-theme="dark">Dark</button>
+                        <button class="btn theme-btn" data-theme="light">Light</button>
+                        <button class="btn theme-btn" data-theme="blue">Blue</button>
+                        <button class="btn theme-btn" data-theme="pink">Pink</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8 relative">
+            <h1 class="text-4xl font-bold" data-key="mainTitle"></h1>
+            <p class="text-lg text-muted mt-2" data-key="mainSubtitle"></p>
+            <button id="settings-btn" class="absolute top-0 right-0 btn btn-secondary p-2">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </button>
+        </header>
+
+        <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+             <!-- Performance (FPS) Test -->
+            <div class="test-card">
+                <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="fpsTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="fpsDesc"></p>
+                    <div id="fps-info" class="text-4xl font-bold text-center p-4"></div>
+                </div>
+            </div>
+
+            <!-- Battery Status -->
+            <div class="test-card">
+                <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="batteryTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="batteryDesc"></p>
+                    <div id="battery-info" class="text-center" data-key="notSupported"></div>
+                </div>
+            </div>
+
+            <!-- Uptime -->
+            <div class="test-card">
+                 <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="uptimeTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="uptimeDesc"></p>
+                    <div id="uptime-info" class="text-2xl font-bold text-center"></div>
+                </div>
+            </div>
+
+             <!-- Vibration Test -->
+            <div class="test-card">
+                <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="vibrationTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="vibrationDesc"></p>
+                </div>
+                <button id="vibration-btn" class="btn btn-primary mt-4 w-full" data-key="vibrationBtn"></button>
+            </div>
+            
+             <!-- Network Speed Test -->
+            <div class="test-card col-span-1 sm:col-span-2 lg:col-span-4">
+                 <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="networkTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="networkDesc"></p>
+                    <div class="flex items-center space-x-2"><span data-key="status"></span><span id="network-status" class="status status-idle">Idle</span></div>
+                    <div id="network-info" class="mt-4 grid grid-cols-3 text-center"></div>
+                </div>
+                <button id="network-btn" class="btn btn-primary mt-4 w-full" data-key="networkBtn"></button>
+            </div>
+            
+            <!-- Recorder Test -->
+            <div class="test-card col-span-1 sm:col-span-2">
+                <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="recorderTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="red" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 016-6h6a6 6 0 016 6v1h-3" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="recorderDesc"></p>
+                    <video id="recorder-preview" class="hidden" playsinline muted></video>
+                    <div id="recorder-download-link" class="mt-2"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                     <button id="record-webcam-btn" class="btn btn-primary" data-key="recordWebcamBtn"></button>
+                     <button id="record-screen-btn" class="btn btn-primary" data-key="recordScreenBtn"></button>
+                </div>
+            </div>
+
+            <!-- PDF Viewer -->
+            <div class="test-card col-span-1 sm:col-span-2">
+                 <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="pdfTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="pdfDesc"></p>
+                    <div id="pdf-viewer-info" class="text-center h-48 flex items-center justify-center border-2 border-dashed rounded-md"></div>
+                 </div>
+                 <button id="pdf-open-btn" class="btn btn-primary mt-4 w-full" data-key="pdfBtn"></button>
+            </div>
+            
+             <!-- File System Access -->
+            <div class="test-card col-span-1 sm:col-span-2">
+                 <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="fsTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="fsDesc"></p>
+                    <div id="fs-info" class="text-sm space-y-1 max-h-48 overflow-y-auto"></div>
+                 </div>
+                 <button id="fs-open-btn" class="btn btn-primary mt-4 w-full" data-key="fsBtn"></button>
+            </div>
+            
+             <!-- Ambient Light Sensor -->
+            <div class="test-card">
+                 <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="ambientLightTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 16a4 4 0 110-8 4 4 0 010 8z" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="ambientLightDesc"></p>
+                    <div id="ambient-light-info" class="text-2xl font-bold text-center"></div>
+                </div>
+                 <button id="ambient-light-btn" class="btn btn-primary mt-4 w-full" data-key="ambientLightBtn"></button>
+            </div>
+            
+             <!-- Proximity Sensor -->
+            <div class="test-card">
+                <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="proximityTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19.5c-5.523 0-10-4.477-10-10S6.477-.5 12-.5s10 4.477 10 10c0 .926-.127 1.825-.366 2.675M18 18l3 3" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="proximityDesc"></p>
+                    <div id="proximity-info" class="text-2xl font-bold text-center"></div>
+                </div>
+                <button id="proximity-btn" class="btn btn-primary mt-4 w-full" data-key="proximityBtn"></button>
+            </div>
+            
+            <!-- Authentication Test -->
+            <div class="test-card">
+                <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="authTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="authDesc"></p>
+                    <div id="auth-info" class="text-center"></div>
+                </div>
+                <button id="auth-btn" class="btn btn-primary mt-4 w-full" data-key="authBtn"></button>
+            </div>
+
+             <!-- Storage & Cookies Test -->
+            <div class="test-card">
+                <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="storageTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="storageDesc"></p>
+                    <div id="storage-info" class="text-sm space-y-2"></div>
+                </div>
+                <button id="storage-btn" class="btn btn-primary mt-4 w-full" data-key="storageBtn"></button>
+            </div>
+            
+            <!-- Orientation Test -->
+            <div class="test-card">
+                <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="orientationTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="orientationDesc"></p>
+                    <div id="orientation-info" class="text-2xl font-bold text-center"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                     <button id="orientation-lock-btn" class="btn btn-primary" data-key="orientationLockBtn"></button>
+                     <button id="orientation-unlock-btn" class="btn btn-secondary" data-key="orientationUnlockBtn"></button>
+                </div>
+            </div>
+
+            <!-- System Info -->
+            <div class="test-card col-span-1 sm:col-span-2">
+                <div>
+                     <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="systemInfoTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a4 4 0 00-4-4H5a2 2 0 00-2 2v2a2 2 0 002 2h2a4 4 0 004-4zm0 0v-2a4 4 0 014-4h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a4 4 0 01-4-4z" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="systemInfoDesc"></p>
+                    <div id="system-info-info" class="mt-4 space-y-2"></div>
+                </div>
+                 <button id="system-info-btn" class="btn btn-primary mt-4 w-full" data-key="systemInfoBtn"></button>
+            </div>
+
+            <!-- Gamepad Test -->
+            <div class="test-card col-span-1 sm:col-span-2 lg:col-span-4">
+                <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="gamepadTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="gamepadDesc"></p>
+                    <div id="gamepad-info" class="text-center"></div>
+                    <div id="gamepad-sticks" class="mt-4">
+                        <div id="gamepad-stick-left" class="gamepad-stick-area"><div id="left-stick" class="gamepad-dot"></div></div>
+                        <div id="gamepad-stick-right" class="gamepad-stick-area"><div id="right-stick" class="gamepad-dot"></div></div>
+                    </div>
+                    <div id="gamepad-buttons" class="mt-4 flex flex-wrap gap-2 justify-center"></div>
+                </div>
+            </div>
+            
+            <div class="test-card col-span-1 sm:col-span-2 lg:col-span-4" id="ai-card">
+                <!-- AI Diagnosis -->
+                <div>
+                    <h2 class="text-2xl font-semibold mb-2 flex items-center" data-key="aiTitle"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.707.707M12 21v-1m-6.364-1.636l.707-.707" /></svg><span class="ml-2"></span></h2>
+                    <p class="text-muted mb-4" data-key="aiDesc"></p>
+                    <div class="flex items-center space-x-2"><span data-key="status"></span><span id="ai-status" class="status status-idle">Idle</span></div>
+                    <div id="ai-result" class="mt-4 space-y-2 p-4 rounded-md max-h-64 overflow-y-auto hidden"></div>
+                </div>
+                <div class="flex space-x-4 mt-4">
+                    <button id="ai-btn" class="btn btn-ai w-full" data-key="aiBtn"></button>
+                    <button id="ai-copy-btn" class="btn btn-secondary w-full hidden" data-key="aiCopyBtn"></button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const translations = {
+                mainTitle: { en: 'Device Tester', id: 'Penguji Perangkat', th: 'เครื่องทดสอบอุปกรณ์', zh: '设备测试器', su: 'Panguji Alat' },
+                mainSubtitle: { en: 'A one-stop tool to check your hardware components.', id: 'Alat terpusat untuk memeriksa komponen perangkat keras Anda.', th: 'เครื่องมือครบวงจรสำหรับตรวจสอบส่วนประกอบฮาร์ดแวร์ของคุณ', zh: '检查硬件组件的一站式工具', su: 'Alat sadaya-di-hiji pikeun mariksa komponén hardware anjeun.' },
+                settingsTitle: { en: 'Settings', id: 'Pengaturan', th: 'การตั้งค่า', zh: '设置', su: 'Setélan' },
+                languageTitle: { en: 'Language', id: 'Bahasa', th: 'ภาษา', zh: '语言', su: 'Basa' },
+                themeTitle: { en: 'Theme', id: 'Tema', th: 'ธีม', zh: '主题', su: 'Téma' },
+                status: { en: 'Status:', id: 'Status:', th: 'สถานะ:', zh: '状态:', su: 'Status:' },
+                notSupported: { en: 'Not Supported', id: 'Tidak Didukung', th: 'ไม่รองรับ', zh: '不支持', su: 'Teu Dirojong' },
+                
+                // Old Features
+                cameraTitle: { en: 'Camera Test', id: 'Tes Kamera', th: 'การทดสอบกล้อง', zh: '摄像头测试', su: 'Tes Kaméra' },
+                cameraDesc: { en: 'Check if your camera is working and view the live feed.', id: 'Periksa apakah kamera Anda berfungsi dan lihat siaran langsung.', th: 'ตรวจสอบว่ากล้องของคุณทำงานได้หรือไม่และดูฟีดสด', zh: '检查您的相机是否正常工作并查看实时画面', su: 'Pariksa naha kaméra anjeun jalan sareng tingali siaran langsung.' },
+                cameraBtnStart: { en: 'Start Camera Test', id: 'Mulai Tes Kamera', th: 'เริ่มการทดสอบกล้อง', zh: '开始摄像头测试', su: 'Mimitian Tes Kaméra' },
+                cameraBtnStop: { en: 'Stop Camera Test', id: 'Hentikan Tes Kamera', th: 'หยุดการทดสอบกล้อง', zh: '停止摄像头测试', su: 'Eureunkeun Tes Kaméra' },
+                micTitle: { en: 'Microphone Test', id: 'Tes Mikrofon', th: 'การทดสอบไมโครโฟน', zh: '麦克风测试', su: 'Tes Mikropon' },
+                micDesc: { en: 'Visualize your voice input to test your microphone.', id: 'Visualisasikan input suara Anda untuk menguji mikrofon.', th: 'แสดงภาพอินพุตเสียงของคุณเพื่อทดสอบไมโครโฟน', zh: '可视化您的语音输入以测试麦克风', su: 'Visualisasikeun input sora anjeun pikeun nguji mikropon.' },
+                micBtnStart: { en: 'Start Mic Test', id: 'Mulai Tes Mikrofon', th: 'เริ่มการทดสอบไมโครโฟน', zh: '开始麦克风测试', su: 'Mimitian Tes Mikropon' },
+                micBtnStop: { en: 'Stop Mic Test', id: 'Hentikan Tes Mikrofon', th: 'หยุดการทดสอบไมโครโฟน', zh: '停止麦克风测试', su: 'Eureunkeun Tes Mikropon' },
+                bluetoothTitle: { en: 'Bluetooth Test', id: 'Tes Bluetooth', th: 'การทดสอบบลูทูธ', zh: '蓝牙测试', su: 'Tes Bluetooth' },
+                bluetoothDesc: { en: 'Check for Web Bluetooth compatibility and connect to a device.', id: 'Periksa kompatibilitas Web Bluetooth dan sambungkan ke perangkat.', th: 'ตรวจสอบความเข้ากันได้ของ Web Bluetooth และเชื่อมต่อกับอุปกรณ์', zh: '检查Web蓝牙兼容性并连接到设备', su: 'Pariksa kasaluyuan Web Bluetooth sareng sambungkeun ka alat.' },
+                bluetoothBtn: { en: 'Connect to Device', id: 'Sambungkan ke Perangkat', th: 'เชื่อมต่อกับอุปกรณ์', zh: '连接到设备', su: 'Sambungkeun ka Alat' },
+                geoTitle: { en: 'Geolocation Test', id: 'Tes Geolokasi', th: 'การทดสอบตำแหน่งทางภูมิศาสตร์', zh: '地理位置测试', su: 'Tes Geolokasi' },
+                geoDesc: { en: 'Test if your browser can access your location.', id: 'Uji apakah browser Anda dapat mengakses lokasi Anda.', th: 'ทดสอบว่าเบราว์เซอร์ของคุณสามารถเข้าถึงตำแหน่งของคุณได้หรือไม่', zh: '测试您的浏览器是否可以访问您的位置', su: 'Tes naha browser anjeun tiasa ngaksés lokasi anjeun.' },
+                geoBtn: { en: 'Get Location', id: 'Dapatkan Lokasi', th: 'รับตำแหน่ง', zh: '获取位置', su: 'Kéngingkeun Lokasi' },
+                speakerTitle: { en: 'Speaker Test', id: 'Tes Speaker', th: 'การทดสอบลำโพง', zh: '扬克风测试', su: 'Tes Speaker' },
+                speakerDesc: { en: 'Play a short sound to test your speakers or headphones.', id: 'Putar suara pendek untuk menguji speaker atau headphone Anda.', th: 'เล่นเสียงสั้นๆ เพื่อทดสอบลำโพงหรือหูฟังของคุณ', zh: '播放短声以测试您的扬声器或耳机', su: 'Maénkeun sora pondok pikeun nguji spiker atanapi headphone anjeun.' },
+                speakerBtn: { en: 'Play Test Sound', id: 'Putar Suara Tes', th: 'เล่นเสียงทดสอบ', zh: '播放测试声音', su: 'Maénkeun Sora Tes' },
+                displayTitle: { en: 'Display Info', id: 'Info Tampilan', th: 'ข้อมูลการแสดงผล', zh: '显示信息', su: 'Info Tampilan' },
+                displayDesc: { en: 'Get details about your screen and browser window.', id: 'Dapatkan detail tentang layar dan jendela browser Anda.', th: 'รับรายละเอียดเกี่ยวกับหน้าจอและหน้าต่างเบราว์เซอร์ของคุณ', zh: '获取有关屏幕和浏览器窗口的详细信息', su: 'Kéngingkeun detil ngeunaan layar sareng jandela browser anjeun.' },
+                displayBtn: { en: 'Get Display Info', id: 'Dapatkan Info Tampilan', th: 'รับข้อมูลการแสดงผล', zh: '获取显示信息', su: 'Kéngingkeun Info Tampilan' },
+                deviceInfoTitle: { en: 'Device Information', id: 'Informasi Perangkat', th: 'ข้อมูลอุปกรณ์', zh: '设备信息', su: 'Inpormasi Alat' },
+                deviceInfoDesc: { en: 'Check hardware details like CPU cores, RAM, and storage.', id: 'Periksa detail perangkat keras seperti inti CPU, RAM, dan penyimpanan.', th: 'ตรวจสอบรายละเอียดฮาร์ดแวร์ เช่น แกน CPU, RAM และที่เก็บข้อมูล', zh: '检查CPU核心、内存和存储等硬件详细信息', su: 'Pariksa detil hardware sapertos inti CPU, RAM, sareng panyimpenan.' },
+                deviceInfoBtn: { en: 'Get Device Info', id: 'Dapatkan Info Perangkat', th: 'รับข้อมูลอุปกรณ์', zh: '获取设备信息', su: 'Kéngingkeun Info Alat' },
+                platformTitle: { en: 'Platform & Browser', id: 'Platform & Browser', th: 'แพลตฟอร์มและเบราว์เซอร์', zh: '平台和浏览器', su: 'Platform & Browser' },
+                platformDesc: { en: 'Get details about your operating system and browser.', id: 'Dapatkan detail tentang sistem operasi dan browser Anda.', th: 'รับรายละเอียดเกี่ยวกับระบบปฏิบัติการและเบราว์เซอร์ของคุณ', zh: '获取有关您的操作系统和浏览器的详细信息', su: 'Kéngingkeun detil ngeunaan sistem operasi sareng browser anjeun.' },
+                platformBtn: { en: 'Get Platform Info', id: 'Dapatkan Info Platform', th: 'รับข้อมูลแพลตฟอร์ม', zh: '获取平台信息', su: 'Kéngingkeun Info Platform' },
+                locationTitle: { en: 'Location & Map Details', id: 'Detail Lokasi & Peta', th: 'รายละเอียดตำแหน่งและแผนที่', zh: '位置和地图详情', su: 'Detil Lokasi & Peta' },
+                locationDesc: { en: 'Get location details based on your IP address and see it on a map.', id: 'Dapatkan detail lokasi berdasarkan alamat IP Anda dan lihat di peta.', th: 'รับรายละเอียดตำแหน่งตามที่อยู่ IP ของคุณและดูบนแผนที่', zh: '根据您的IP地址获取位置详细信息并将其显示在地图上', su: 'Kéngingkeun detil lokasi dumasar kana alamat IP anjeun sareng tingali dina peta.' },
+                locationBtn: { en: 'Get Location Details', id: 'Dapatkan Detail Lokasi', th: 'รับรายละเอียดตำแหน่ง', zh: '获取位置详情', su: 'Kéngingkeun Detil Lokasi' },
+                aiTitle: { en: '✨ AI System Diagnosis', id: '✨ Diagnosis Sistem AI', th: '✨ การวินิจฉัยระบบ AI', zh: '✨ AI系统诊断', su: '✨ Diagnosis Sistem AI' },
+                aiDesc: { en: "Use AI to analyze your device's test results for a comprehensive report and troubleshooting tips.", id: 'Gunakan AI untuk menganalisis hasil tes perangkat Anda untuk laporan komprehensif dan tips pemecahan masalah.', th: 'ใช้ AI เพื่อวิเคราะห์ผลการทดสอบอุปกรณ์ของคุณสำหรับรายงานที่ครอบคลุมและเคล็ดลับในการแก้ไขปัญหา', zh: '使用AI分析您设备的测试结果，以获取全面的报告和故障排除提示', su: 'Anggo AI pikeun nganalisis hasil tes alat anjeun pikeun laporan komprehensif sareng tips ngungkulan masalah.' },
+                aiBtn: { en: 'Run Diagnosis', id: 'Jalankan Diagnosis', th: 'เรียกใช้การวินิจฉัย', zh: '运行诊断', su: 'Jalankeun Diagnosis' },
+                aiCopyBtn: { en: 'Copy Report', id: 'Salin Laporan', th: 'คัดลอกรายงาน', zh: '复制报告', su: 'Salin Laporan' },
+                networkTitle: { en: 'Network Speed Test', id: 'Tes Kecepatan Jaringan', th: 'ทดสอบความเร็วเครือข่าย', zh: '网络速度测试', su: 'Tes Kacepetan Jaringan' },
+                networkDesc: { en: 'Check your download speed, latency, and jitter.', id: 'Periksa kecepatan unduh, latensi, dan jitter Anda.', th: 'ตรวจสอบความเร็วในการดาวน์โหลด เวลาแฝง และความกระวนกระวายใจของคุณ', zh: '检查您的下载速度、延迟和抖动', su: 'Pariksa kacepetan unduh, latency, sareng jitter anjeun.' },
+                networkBtn: { en: 'Start Speed Test', id: 'Mulai Tes Kecepatan', th: 'เริ่มทดสอบความเร็ว', zh: '开始速度测试', su: 'Mimitian Tes Kacepetan' },
+                keyboardTitle: { en: 'Keyboard Test', id: 'Tes Keyboard', th: 'ทดสอบคีย์บอร์ด', zh: '键盘测试', su: 'Tes Keyboard' },
+                keyboardDesc: { en: 'Press any key to see it light up below.', id: 'Tekan tombol apa saja untuk melihatnya menyala di bawah.', th: 'กดปุ่มใดก็ได้เพื่อดูว่ามันสว่างขึ้นด้านล่าง', zh: '按任意键即可看到它在下方亮起', su: 'Pencét kenop naon waé pikeun ningali éta hurung di handap.' },
+                mouseTitle: { en: 'Mouse & Touch Test', id: 'Tes Mouse & Sentuh', th: 'การทดสอบเมาส์และสัมผัส', zh: '鼠标和触摸测试', su: 'Tes Beurit & Toél' },
+                mouseDesc: { en: 'Test clicks, scroll, and movement in the area below.', id: 'Uji klik, gulir, dan gerakan di area di bawah.', th: 'ทดสอบการคลิก เลื่อน และการเคลื่อนไหวในพื้นที่ด้านล่าง', zh: '在下方区域测试单击、滚动和移动', su: 'Tes klik, gulung, sareng gerakan di daérah di handap.' },
+                batteryTitle: { en: 'Battery Status', id: 'Status Baterai', th: 'สถานะแบตเตอรี่', zh: '电池状态', su: 'Status Batré' },
+                batteryDesc: { en: 'Check your device\'s charge level and status.', id: 'Periksa level dan status pengisian daya perangkat Anda.', th: 'ตรวจสอบระดับการชาร์จและสถานะของอุปกรณ์', zh: '检查您设备的充电水平和状态', su: 'Pariksa tingkat ngecas sareng status alat anjeun.' },
+                clipboardTitle: { en: 'Clipboard Test', id: 'Tes Clipboard', th: 'ทดสอบคลิปบอร์ด', zh: '剪贴板测试', su: 'Tes Clipboard' },
+                clipboardDesc: { en: 'Test your browser\'s copy and paste functionality.', id: 'Uji fungsionalitas salin dan tempel browser Anda.', th: 'ทดสอบฟังก์ชันการคัดลอกและวางของเบราว์เซอร์ของคุณ', zh: '测试浏览器的复制和粘贴功能', su: 'Tes fungsionalitas salin sareng témpél browser anjeun.' },
+                clipboardCopyBtn: { en: 'Copy', id: 'Salin', th: 'คัดลอก', zh: '复制', su: 'Salin' },
+                clipboardPasteBtn: { en: 'Paste', id: 'Tempel', th: 'วาง', zh: '粘贴', su: 'Témpél' },
+                fpsTitle: { en: 'Performance (FPS)', id: 'Performa (FPS)', th: 'ประสิทธิภาพ (FPS)', zh: '性能 (FPS)', su: 'Performa (FPS)' },
+                fpsDesc: { en: 'Measures the smoothness of animations on your screen.', id: 'Mengukur kelancaran animasi di layar Anda.', th: 'วัดความราบรื่นของภาพเคลื่อนไหวบนหน้าจอของคุณ', zh: '测量屏幕上动画的流畅度', su: 'Ngukur kalancaran animasi dina layar anjeun.' },
+                recorderTitle: { en: 'Webcam & Screen Recorder', id: 'Perekam Webcam & Layar', th: 'เครื่องบันทึกเว็บแคมและหน้าจอ', zh: '网络摄像头和屏幕录像机', su: 'Perekam Webcam & Layar' },
+                recorderDesc: { en: 'Record video from your camera or screen.', id: 'Rekam video dari kamera atau layar Anda.', th: 'บันทึกวิดิโอจากกล้องหรือหน้าจอของคุณ', zh: '从您的相机或屏幕录制视频', su: 'Rékam pidéo tina kaméra atanapi layar anjeun.' },
+                recordWebcamBtn: { en: 'Record Webcam', id: 'Rekam Webcam', th: 'บันทึกเว็บแคม', zh: '录制网络摄像头', su: 'Rékam Webcam' },
+                recordScreenBtn: { en: 'Record Screen', id: 'Rekam Layar', th: 'บันทึกหน้าจอ', zh: '录制屏幕', su: 'Rékam Layar' },
+                touchTitle: { en: 'Touch Screen Test', id: 'Tes Layar Sentuh', th: 'ทดสอบหน้าจอสัมผัส', zh: '触摸屏测试', su: 'Tes Layar Toél' },
+                touchDesc: { en: 'Use multiple fingers to test multi-touch support.', id: 'Gunakan beberapa jari untuk menguji dukungan multi-sentuh.', th: 'ใช้นิ้วหลายนิ้วเพื่อทดสอบการรองรับมัลติทัช', zh: '使用多根手指测试多点触控支持', su: 'Anggo sababaraha ramo pikeun nguji dukungan multi-toél.' },
+                sensorsTitle: { en: 'Device Sensors', id: 'Sensor Perangkat', th: 'เซ็นเซอร์อุปกรณ์', zh: '设备传感器', su: 'Sénsor Alat' },
+                sensorsDesc: { en: 'Test gyroscope and accelerometer device motion.', id: 'Uji giroskop dan gerakan perangkat akselerometer.', th: 'ทดสอบการเคลื่อนไหวของอุปกรณ์ไจโรสโคปและมาตรความเร่ง', zh: '测试陀螺仪和加速度计设备运动', su: 'Tes giroskop sareng gerakan alat akselerometer.' },
+                sensorsBtn: { en: 'Activate Sensors', id: 'Aktifkan Sensor', th: 'เปิดใช้งานเซ็นเซอร์', zh: '激活传感器', su: 'Aktipkeun Sénsor' },
+                colorTitle: { en: 'Display Color Test', id: 'Tes Warna Tampilan', th: 'ทดสอบสีของจอแสดงผล', zh: '显示颜色测试', su: 'Tes Warna Tampilan' },
+                colorDesc: { en: 'Checks for wide color gamut (P3) and HDR support.', id: 'Memeriksa gamut warna lebar (P3) dan dukungan HDR.', th: 'ตรวจสอบขอบเขตสีที่กว้าง (P3) และการรองรับ HDR', zh: '检查广色域 (P3) 和 HDR 支持', su: 'Mariksa gamut warna lega (P3) sareng dukungan HDR.' },
+                connectedDevicesTitle: { en: 'Connected Devices', id: 'Perangkat Terhubung', th: 'อุปกรณ์ที่เชื่อมต่อ', zh: '连接的设备', su: 'Alat Anu Nyambung' },
+                connectedDevicesDesc: { en: 'Lists all detected cameras, mics, and speakers.', id: 'Mencantumkan semua kamera, mikrofon, dan speaker yang terdeteksi.', th: 'แสดงรายการกล้อง ไมโครโฟน และลำโพงที่ตรวจพบทั้งหมด', zh: '列出所有检测到的摄像头、麦克风和扬声器', su: 'Ngadaptarkeun sadaya kaméra, mikropon, sareng spiker anu kadeteksi.' },
+                connectedDevicesBtn: { en: 'Scan Devices', id: 'Pindai Perangkat', th: 'สแกนอุปกรณ์', zh: '扫描设备', su: 'Scan Alat' },
+                mouseAreaText: { en: 'Click, move, and scroll in this area', id: 'Klik, pindah, dan gulir di area ini', th: 'คลิก ย้าย และเลื่อนในบริเวณนี้', zh: '在此区域单击、移动和滚动', su: 'Klik, pindah, sareng gulung di daérah ieu' },
+                keyboardPlaceholder: { en: 'Type here to test...', id: 'Ketik di sini untuk menguji...', th: 'พิมพ์ที่นี่เพื่อทดสอบ...', zh: '在此处键入以进行测试...', su: 'Ketik di dieu pikeun nguji...' },
+                clipboardPlaceholder: { en: 'Text to copy or paste...', id: 'Teks untuk disalin atau ditempel...', th: 'ข้อความที่จะคัดลอกหรือวาง...', zh: '要复制或粘贴的文本...', su: 'Téks pikeun disalin atanapi ditempelkeun...' },
+
+                // 7 New Features
+                pdfTitle: { en: 'PDF Viewer Test', id: 'Tes Penampil PDF', th: 'การทดสอบโปรแกรมดู PDF', zh: 'PDF 查看器测试', su: 'Tes Panempo PDF' },
+                pdfDesc: { en: 'Select a local PDF file to test rendering.', id: 'Pilih file PDF lokal untuk menguji rendering.', th: 'เลือกไฟล์ PDF ในเครื่องเพื่อทดสอบการเรนเดอร์', zh: '选择本地 PDF 文件以测试渲染', su: 'Pilih payil PDF lokal pikeun nguji rénder.' },
+                pdfBtn: { en: 'Open PDF', id: 'Buka PDF', th: 'เปิด PDF', zh: '打开 PDF', su: 'Buka PDF' },
+                fsTitle: { en: 'File System Access', id: 'Akses Sistem File', th: 'การเข้าถึงระบบไฟล์', zh: '文件系统访问', su: 'Aksés Sistem Payil' },
+                fsDesc: { en: 'Select a folder to view its contents.', id: 'Pilih folder untuk melihat isinya.', th: 'เลือกโฟลเดอร์เพื่อดูเนื้อหา', zh: '选择一个文件夹以查看其内容', su: 'Pilih polder pikeun ningali eusina.' },
+                fsBtn: { en: 'Open Folder', id: 'Buka Folder', th: 'เปิดโฟลเดอร์', zh: '打开文件夹', su: 'Buka Polder' },
+                vibrationTitle: { en: 'Vibration Test', id: 'Tes Getaran', th: 'การทดสอบการสั่นสะเทือน', zh: '振动测试', su: 'Tes Geter' },
+                vibrationDesc: { en: 'Test the device\'s vibration motor.', id: 'Uji motor getar perangkat.', th: 'ทดสอบมอเตอร์สั่นของอุปกรณ์', zh: '测试设备的振动电机', su: 'Tes motor geter alat.' },
+                vibrationBtn: { en: 'Vibrate (200ms)', id: 'Getar (200ms)', th: 'สั่น (200ms)', zh: '振动 (200ms)', su: 'Geter (200ms)' },
+                ambientLightTitle: { en: 'Ambient Light', id: 'Cahaya Sekitar', th: 'แสงโดยรอบ', zh: '环境光', su: 'Cahya Sakuliling' },
+                ambientLightDesc: { en: 'Reads the ambient light sensor.', id: 'Membaca sensor cahaya sekitar.', th: 'อ่านเซ็นเซอร์วัดแสงโดยรอบ', zh: '读取环境光传感器', su: 'Maca sénsor cahya sakuliling.' },
+                ambientLightBtn: { en: 'Start Sensor', id: 'Mulai Sensor', th: 'เริ่มเซ็นเซอร์', zh: '启动传感器', su: 'Mimitian Sénsor' },
+                proximityTitle: { en: 'Proximity Sensor', id: 'Sensor Jarak', th: 'เซ็นเซอร์ความใกล้ชิด', zh: '接近传感器', su: 'Sénsor Jarak' },
+                proximityDesc: { en: 'Detects object proximity to the screen.', id: 'Mendeteksi kedekatan objek dengan layar.', th: 'ตรวจจับความใกล้ชิดของวัตถุกับหน้าจอ', zh: '检测物体与屏幕的接近程度', su: 'Ngadeteksi deukeutna objék kana layar.' },
+                proximityBtn: { en: 'Start Sensor', id: 'Mulai Sensor', th: 'เริ่มเซ็นเซอร์', zh: '启动传感器', su: 'Mimitian Sénsor' },
+                authTitle: { en: 'Authentication', id: 'Otentikasi', th: 'การรับรองความถูกต้อง', zh: '认证', su: ' auténtikasi' },
+                authDesc: { en: 'Test biometric authentication (WebAuthn).', id: 'Uji otentikasi biometrik (WebAuthn).', th: 'ทดสอบการรับรองความถูกต้องด้วยไบโอเมตริก (WebAuthn)', zh: '测试生物特征认证 (WebAuthn)', su: 'Tes auténtikasi biométrik (WebAuthn).' },
+                authBtn: { en: 'Test Authentication', id: 'Tes Otentikasi', th: 'ทดสอบการรับรองความถูกต้อง', zh: '测试认证', su: 'Tes auténtikasi' },
+                uptimeTitle: { en: 'Session Uptime', id: 'Waktu Aktif Sesi', th: 'เวลาทำงานของเซสชัน', zh: '会话正常运行时间', su: 'Waktu Aktip Sési' },
+                uptimeDesc: { en: 'Time since the page was loaded.', id: 'Waktu sejak halaman dimuat.', th: 'เวลาตั้งแต่โหลดหน้า', zh: '页面加载后的时间', su: 'Waktu ti saprak kaca dimuat.' },
+
+                // 3 Newest features
+                systemInfoTitle: { en: 'System Info', id: 'Info Sistem', th: 'ข้อมูลระบบ', zh: '系统信息', su: 'Info Sistem' },
+                systemInfoDesc: { en: 'Detailed User Agent information.', id: 'Informasi User Agent terperinci.', th: 'ข้อมูล User Agent โดยละเอียด', zh: '详细的用户代理信息', su: 'Inpormasi Agén Pamaké nu lengkep.' },
+                systemInfoBtn: { en: 'Get System Info', id: 'Dapatkan Info Sistem', th: 'รับข้อมูลระบบ', zh: '获取系统信息', su: 'Kéngingkeun Info Sistem' },
+                storageTitle: { en: 'Storage & Cookies', id: 'Penyimpanan & Cookie', th: 'ที่เก็บข้อมูลและคุกกี้', zh: '存储和 Cookie', su: 'Panyimpenan & Cookie' },
+                storageDesc: { en: 'Check cookie support and storage quotas.', id: 'Periksa dukungan cookie dan kuota penyimpanan.', th: 'ตรวจสอบการรองรับคุกกี้และโควต้าพื้นที่เก็บข้อมูล', zh: '检查 Cookie 支持和存储配额', su: 'Pariksa dukungan cookie sareng kuota panyimpenan.' },
+                storageBtn: { en: 'Check Storage', id: 'Periksa Penyimpanan', th: 'ตรวจสอบที่เก็บข้อมูล', zh: '检查存储', su: 'Pariksa Panyimpenan' },
+                orientationTitle: { en: 'Screen Orientation', id: 'Orientasi Layar', th: 'การวางแนวหน้าจอ', zh: '屏幕方向', su: 'Orientasi Layar' },
+                orientationDesc: { en: 'Check and lock screen orientation.', id: 'Periksa dan kunci orientasi layar.', th: 'ตรวจสอบและล็อกการวางแนวหน้าจอ', zh: '检查和锁定屏幕方向', su: 'Pariksa sareng konci orientasi layar.' },
+                orientationLockBtn: { en: 'Lock', id: 'Kunci', th: 'ล็อค', zh: '锁定', su: 'Konci' },
+                orientationUnlockBtn: { en: 'Unlock', id: 'Buka Kunci', th: 'ปลดล็อค', zh: '解锁', su: 'Buka Konci' },
+
+                // Final 3 Features
+                gamepadTitle: { en: 'Gamepad Test', id: 'Tes Gamepad', th: 'ทดสอบเกมแพด', zh: '游戏手柄测试', su: 'Tes Gamepad' },
+                gamepadDesc: { en: 'Connect a controller and press buttons.', id: 'Hubungkan controller dan tekan tombol.', th: 'เชื่อมต่อคอนโทรลเลอร์และกดปุ่ม', zh: '连接控制器并按键', su: 'Sambungkeun controller jeung pencét tombol.' },
+                cameraPhotoTitle: { en: 'Camera & Photo', id: 'Kamera & Foto', th: 'กล้องและรูปถ่าย', zh: '相机和照片', su: 'Kaméra & Poto' },
+                cameraPhotoDesc: { en: 'View camera capabilities and take a snapshot.', id: 'Lihat kemampuan kamera dan ambil snapshot.', th: 'ดูความสามารถของกล้องและถ่ายภาพรวม', zh: '查看相机功能并拍照', su: 'Tingali kamampuhan kaméra jeung cokot poto.' },
+                cameraSnapBtn: { en: 'Take Photo', id: 'Ambil Foto', th: 'ถ่ายรูป', zh: '拍照', su: 'Cokot Poto' },
+                ttsTitle: { en: 'Text-to-Speech', id: 'Teks-ke-Suara', th: 'ข้อความเป็นคำพูด', zh: '文字转语音', su: 'Téks-ka-Sora' },
+                ttsDesc: { en: 'Test your browser\'s voice synthesis engine.', id: 'Uji mesin sintesis suara browser Anda.', th: 'ทดสอบเครื่องมือสังเคราะห์เสียงของเบราว์เซอร์', zh: '测试浏览器的语音合成引擎', su: 'Tes mesin sintésis sora browser anjeun.' },
+                ttsSpeakBtn: { en: 'Speak', id: 'Bicara', th: 'พูด', zh: '说话', su: 'Nyarios' },
+
+            };
+            
+            let currentLang = 'en';
+
+            const setLanguage = (lang) => {
+                currentLang = lang;
+                document.querySelectorAll('[data-key]').forEach(elem => {
+                    const key = elem.dataset.key;
+                    if (translations[key] && translations[key][lang]) {
+                         // This is the corrected logic
+                         let targetNode = elem;
+                         if(elem.tagName === 'H2' && elem.querySelector('span.ml-2')) {
+                            targetNode = elem.querySelector('span.ml-2');
+                         }
+                        targetNode.textContent = translations[key][lang];
+                    }
+                });
+                document.querySelectorAll('[data-key-placeholder]').forEach(elem => {
+                    const key = elem.dataset.keyPlaceholder;
+                    if (translations[key] && translations[key][lang]) {
+                        elem.placeholder = translations[key][lang];
+                    }
+                });
+                 document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
+            };
+            
+            const setTheme = (themeName) => {
+                document.body.dataset.theme = themeName;
+                localStorage.setItem('device-tester-theme', themeName);
+                 document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.theme === themeName));
+            };
+
+            const updateStatus = (elementId, status, text) => {
+                const el = document.getElementById(elementId);
+                if(el) {
+                    el.className = `status status-${status}`;
+                    el.textContent = text;
+                }
+            };
+
+            // --- Settings Modal ---
+            const settingsModal = document.getElementById('settings-modal');
+            const settingsBtn = document.getElementById('settings-btn');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            settingsBtn.addEventListener('click', () => settingsModal.classList.add('visible'));
+            modalCloseBtn.addEventListener('click', () => settingsModal.classList.remove('visible'));
+            settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) { settingsModal.classList.remove('visible'); } });
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.addEventListener('click', () => setLanguage(btn.dataset.lang)));
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.addEventListener('click', () => setTheme(btn.dataset.theme)));
+            
+            // --- ... (existing feature initializations) ... ---
+            
+            // --- Final 7 + 3 + 3 = 13 Newest Features ---
+
+            // 1. PDF Viewer
+            const pdfOpenBtn = document.getElementById('pdf-open-btn');
+            if(pdfOpenBtn) {
+                if('showOpenFilePicker' in window) {
+                    pdfOpenBtn.addEventListener('click', async () => {
+                        try {
+                            const [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'PDF Files', accept: {'application/pdf': ['.pdf']} }] });
+                            const file = await fileHandle.getFile();
+                            const viewer = document.getElementById('pdf-viewer-info');
+                            const fileURL = URL.createObjectURL(file);
+                            viewer.innerHTML = `<iframe src="${fileURL}" class="w-full h-full"></iframe>`;
+                        } catch(e) { console.log("User cancelled PDF open");}
+                    });
+                } else {
+                     pdfOpenBtn.addEventListener('click', () => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'application/pdf';
+                        input.onchange = e => {
+                            const file = e.target.files[0];
+                            const viewer = document.getElementById('pdf-viewer-info');
+                            if(file) {
+                                const fileURL = URL.createObjectURL(file);
+                                viewer.innerHTML = `<iframe src="${fileURL}" class="w-full h-full"></iframe>`;
+                            }
+                        };
+                        input.click();
+                    });
+                }
+            }
+
+
+            // 2. File System Access
+            const fsOpenBtn = document.getElementById('fs-open-btn');
+            if (fsOpenBtn) {
+                if ('showDirectoryPicker' in window) {
+                    fsOpenBtn.addEventListener('click', async () => {
+                        const infoEl = document.getElementById('fs-info');
+                        try {
+                            const dirHandle = await window.showDirectoryPicker();
+                            infoEl.innerHTML = `<strong>Folder: ${dirHandle.name}</strong><ul>`;
+                            for await (const entry of dirHandle.values()) {
+                                infoEl.innerHTML += `<li>${entry.kind === 'file' ? '📄' : '📁'} ${entry.name}</li>`;
+                            }
+                            infoEl.innerHTML += '</ul>';
+                        } catch(e) { infoEl.textContent = 'Could not access folder.'; console.error(e); }
+                    });
+                } else {
+                    fsOpenBtn.disabled = true;
+                    const fsInfo = document.getElementById('fs-info');
+                    if (fsInfo) fsInfo.textContent = translations.notSupported[currentLang];
+                }
+            }
+
+
+            // 3. Vibration Test
+            const vibrationBtn = document.getElementById('vibration-btn');
+            if(vibrationBtn) {
+                 vibrationBtn.addEventListener('click', () => {
+                    if ('vibrate' in navigator) { navigator.vibrate(200); } 
+                    else { 
+                        vibrationBtn.textContent = translations.notSupported[currentLang]; 
+                        vibrationBtn.disabled = true; 
+                    }
+                });
+            }
+            
+            
+            // 4. Ambient Light Sensor
+            const ambientLightBtn = document.getElementById('ambient-light-btn');
+            if (ambientLightBtn) {
+                if ('AmbientLightSensor' in window) {
+                    ambientLightBtn.addEventListener('click', () => {
+                        navigator.permissions.query({ name: 'ambient-light-sensor' }).then(result => {
+                            if (result.state === 'denied') {
+                                document.getElementById('ambient-light-info').textContent = 'Permission Denied';
+                                return;
+                            }
+                             try {
+                                const sensor = new AmbientLightSensor({frequency: 1});
+                                sensor.onreading = () => { document.getElementById('ambient-light-info').textContent = `${sensor.illuminance.toFixed(0)} lux`; };
+                                sensor.onerror = (e) => { document.getElementById('ambient-light-info').textContent = 'Error'; console.error(e); };
+                                sensor.start();
+                                ambientLightBtn.classList.add('hidden');
+                            } catch(e) {
+                                 document.getElementById('ambient-light-info').textContent = 'Error starting sensor';
+                            }
+                        });
+                    });
+                } else {
+                    document.getElementById('ambient-light-info').textContent = 'N/A';
+                    ambientLightBtn.classList.add('hidden');
+                }
+            }
+            
+            
+            // 5. Proximity Sensor
+            const proximityBtn = document.getElementById('proximity-btn');
+            if (proximityBtn) {
+                if ('ProximitySensor' in window) {
+                    proximityBtn.addEventListener('click', () => {
+                        navigator.permissions.query({ name: 'proximity' }).then(result => {
+                             if (result.state === 'denied') {
+                                document.getElementById('proximity-info').textContent = 'Permission Denied';
+                                return;
+                            }
+                            try {
+                                const sensor = new ProximitySensor();
+                                sensor.onreading = () => { 
+                                    document.getElementById('proximity-info').textContent = sensor.value ? `${sensor.value.toFixed(0)} cm` : 'Far'; 
+                                };
+                                sensor.onerror = (e) => { document.getElementById('proximity-info').textContent = 'Error'; console.error(e); };
+                                sensor.start();
+                                proximityBtn.classList.add('hidden');
+                            } catch (e) {
+                                 document.getElementById('proximity-info').textContent = 'Error starting sensor';
+                            }
+                        });
+                    });
+                } else {
+                     document.getElementById('proximity-info').textContent = 'N/A';
+                     proximityBtn.classList.add('hidden');
+                }
+            }
+
+
+            // 6. Authentication (WebAuthn)
+            const authBtn = document.getElementById('auth-btn');
+            if (authBtn) {
+                authBtn.addEventListener('click', async () => {
+                    const infoEl = document.getElementById('auth-info');
+                    try {
+                        const isSupported = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                        if(isSupported) {
+                            infoEl.textContent = 'Biometrics supported.';
+                        } else { infoEl.textContent = 'Biometrics not supported.'; }
+                    } catch (e) { infoEl.textContent = 'Error checking support.'; console.error(e); }
+                });
+            }
+
+            // 7. Session Uptime
+            const uptimeEl = document.getElementById('uptime-info');
+            if (uptimeEl) {
+                const startTime = Date.now();
+                setInterval(() => {
+                    const seconds = Math.floor((Date.now() - startTime) / 1000);
+                    const h = String(Math.floor(seconds / 3600)).padStart(2,'0');
+                    const m = String(Math.floor(seconds % 3600 / 60)).padStart(2,'0');
+                    const s = String(seconds % 60).padStart(2,'0');
+                    uptimeEl.textContent = `${h}:${m}:${s}`;
+                }, 1000);
+            }
+            
+            // 8. System Info
+            const systemInfoBtn = document.getElementById('system-info-btn');
+            if(systemInfoBtn) {
+                systemInfoBtn.addEventListener('click', () => {
+                    const ua = navigator.userAgent;
+                    const infoEl = document.getElementById('system-info-info');
+                    let engine = 'Unknown';
+                    if (ua.includes('Gecko/')) engine = 'Gecko (Firefox)';
+                    if (ua.includes('AppleWebKit/')) engine = 'WebKit (Safari/Chrome)';
+                    if (ua.includes('Blink/')) engine = 'Blink (Chrome/Edge)';
+                    
+                    const isMobile = /Mobi|Android/i.test(ua);
+                    
+                    infoEl.innerHTML = `
+                        <p><strong>Browser Engine:</strong> ${engine}</p>
+                        <p><strong>Device Type:</strong> ${isMobile ? 'Mobile/Tablet' : 'Desktop'}</p>
+                        <p class="text-xs break-all mt-2">${ua}</p>
+                    `;
+                });
+            }
+            
+            // 9. Storage & Cookies
+            const storageBtn = document.getElementById('storage-btn');
+            if(storageBtn) {
+                storageBtn.addEventListener('click', async () => {
+                    const infoEl = document.getElementById('storage-info');
+                    let cookieEnabled = navigator.cookieEnabled ? '<span class="text-green-400">Enabled</span>' : '<span class="text-red-400">Disabled</span>';
+                    
+                    let storageInfo = '';
+                    if(navigator.storage && navigator.storage.estimate) {
+                        const estimate = await navigator.storage.estimate();
+                        storageInfo = `
+                            <p><strong>Quota:</strong> ${(estimate.quota / 1024 / 1024).toFixed(2)} MB</p>
+                            <p><strong>Usage:</strong> ${(estimate.usage / 1024 / 1024).toFixed(2)} MB</p>
+                        `;
+                    }
+                    
+                    infoEl.innerHTML = `
+                        <p><strong>Cookies:</strong> ${cookieEnabled}</p>
+                        ${storageInfo}
+                    `;
+                });
+            }
+
+            // 10. Screen Orientation
+            const orientationInfo = document.getElementById('orientation-info');
+            const lockBtn = document.getElementById('orientation-lock-btn');
+            const unlockBtn = document.getElementById('orientation-unlock-btn');
+            if(orientationInfo && lockBtn && unlockBtn) {
+                if('orientation' in screen) {
+                    const updateOrientation = () => { orientationInfo.textContent = screen.orientation.type.split('-')[0]; };
+                    updateOrientation();
+                    screen.orientation.addEventListener('change', updateOrientation);
+                    lockBtn.addEventListener('click', async () => {
+                       try { 
+                            await screen.orientation.lock(screen.orientation.type); 
+                            lockBtn.textContent = "Locked!";
+                            setTimeout(()=> lockBtn.textContent = translations.orientationLockBtn[currentLang], 2000);
+                        } catch(e) { 
+                            console.error(e); 
+                            lockBtn.textContent = "Lock Failed";
+                             setTimeout(()=> lockBtn.textContent = translations.orientationLockBtn[currentLang], 2000);
+                        }
+                    });
+                    unlockBtn.addEventListener('click', () => screen.orientation.unlock());
+                } else {
+                     orientationInfo.textContent = 'N/A';
+                     lockBtn.disabled = true;
+                     unlockBtn.disabled = true;
+                }
+            }
+
+            // --- AI System Diagnosis ---
+            const aiBtn = document.getElementById('ai-btn');
+            const aiResult = document.getElementById('ai-result');
+            const aiCopyBtn = document.getElementById('ai-copy-btn');
+            aiBtn.addEventListener('click', async () => {
+                 const reportData = {
+                    "FPS": document.getElementById('fps-info').innerText, "Network Info": document.getElementById('network-info').innerText,
+                    "Camera Status": document.getElementById('camera-status').textContent, "Microphone Status": document.getElementById('mic-status').textContent,
+                    "Speaker Status": document.getElementById('speaker-status').textContent, "Bluetooth Status": document.getElementById('bluetooth-status').textContent, 
+                    "Geolocation Status": document.getElementById('geo-status').textContent, "Battery Info": document.getElementById('battery-info').innerText,
+                    "Display Info": document.getElementById('display-info').innerText, "Device Info": document.getElementById('device-info').innerText, 
+                    "Platform Info": document.getElementById('platform-info').innerText, "IP Location Info": document.getElementById('location-info').innerText,
+                    "Connected Devices": document.getElementById('connected-devices-info').innerText,
+                    "Ambient Light": document.getElementById('ambient-light-info').innerText,
+                    "Proximity": document.getElementById('proximity-info').innerText,
+                    "Authentication": document.getElementById('auth-info').innerText,
+                    "Storage/Cookies": document.getElementById('storage-info').innerText,
+                    "Orientation": document.getElementById('orientation-info').innerText,
+                    "User Agent": navigator.userAgent
+                };
+                const langMap = { en: 'English', id: 'Indonesian', su: 'Sundanese', th: 'Thai', zh: 'Chinese' };
+                const responseLanguage = langMap[currentLang] || 'English';
+                let userQuery = "Here is a report of my device's hardware status:\n\n" + Object.entries(reportData).filter(([, val]) => val && val.trim() && val.trim() !== '-' && !val.includes(translations.notSupported[currentLang])).map(([key, val]) => `${key}: ${val.trim().replace(/\s+/g, ' ')}`).join('\n');
+                const systemPrompt = `You are a helpful and friendly tech support assistant. Analyze the following device hardware report. Provide a concise, easy-to-understand summary of the system's health in a single paragraph. Then, if any issues are detected (like 'Permission Denied', 'Failed', 'Error', or 'Not Supported'), list them as bullet points and offer simple, step-by-step troubleshooting advice for each. If everything looks good, just say that all systems appear to be functioning correctly. Format your response clearly using markdown. IMPORTANT: Your entire response must be in ${responseLanguage}.`;
+                aiResult.classList.add('hidden'); aiCopyBtn.classList.add('hidden');
+                updateStatus('ai-status', 'testing', 'Analyzing...');
+                aiBtn.innerHTML = '<span class="loader"></span>Generating...'; aiBtn.disabled = true;
+                try {
+                    const apiKey = ""; const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } };
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        aiResult.innerHTML = text.replace(/\n/g, '<br>').replace(/\* /g, '&bull; ');
+                        aiResult.classList.remove('hidden'); aiCopyBtn.classList.remove('hidden');
+                        updateStatus('ai-status', 'success', 'Complete');
+                    } else { throw new Error("No content received from API."); }
+                } catch (err) {
+                    console.error("AI Diagnosis Error:", err);
+                    aiResult.textContent = "Sorry, something went wrong while generating the report. The AI model might be temporarily unavailable. Please try again later.";
+                    aiResult.classList.remove('hidden'); updateStatus('ai-status', 'fail', 'Error');
+                } finally {
+                    aiBtn.innerHTML = translations.aiBtn[currentLang]; aiBtn.disabled = false;
+                }
+            });
+            aiCopyBtn.addEventListener('click', () => {
+                const textToCopy = aiResult.innerText; const originalText = aiCopyBtn.textContent;
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    aiCopyBtn.textContent = 'Copied!';
+                    setTimeout(() => { aiCopyBtn.textContent = originalText }, 2000);
+                });
+            });
+            
+            // --- INITIALIZATION ---
+            // getDisplayInfo(); getDeviceInfo(); getPlatformInfo(); // These are now button controlled
+            const savedTheme = localStorage.getItem('device-tester-theme') || 'dark';
+            setTheme(savedTheme); setLanguage('en'); 
+
+            // Move AI card to the end of the main grid
+            const mainGrid = document.querySelector('main');
+            const aiCard = document.getElementById('ai-card');
+            mainGrid.appendChild(aiCard);
+        });
+    </script>
+</body>
+</html>
+
